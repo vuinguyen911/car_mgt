@@ -4,11 +4,71 @@
 
 ```
 nexjs_1_million/
-├── frontend/          Next.js 15 (App Router)
-├── backend/           NestJS + Prisma
-├── docker-compose.yml PostgreSQL + Redis
+├── frontend/                   Next.js 15 (App Router)
+├── backend/
+│   ├── config.yml              Cấu hình chính (commit được)
+│   ├── config.local.yml        Override local/production (KHÔNG commit)
+│   ├── config.local.yml.example
+│   ├── prisma/schema.prisma
+│   └── src/
+│       └── common/
+│           ├── config/         ConfigLoader, AppConfig types
+│           └── database/
+│               ├── database.module.ts      Build URL từ config, export PrismaService
+│               ├── prisma.service.ts       Kết nối qua DatabaseModule
+│               ├── base.repository.ts      Interface gốc
+│               └── repository.tokens.ts   Injection tokens
+├── docker-compose.yml          PostgreSQL + Redis
 └── Kien_Truc_He_Thong_Xe_Hoi.docx
 ```
+
+## Cấu hình Database
+
+Mọi cấu hình nằm trong `backend/config.yml`. Không kết nối DB trực tiếp trong code.
+
+### Đổi sang MySQL
+```yaml
+# config.yml
+database:
+  type: mysql          # ← đổi từ postgresql sang mysql
+  host: localhost
+  port: 3306
+  username: root
+  password: password
+  name: car_admin_db
+```
+
+Sau đó cập nhật `prisma/schema.prisma`:
+```prisma
+datasource db {
+  provider = "mysql"   # ← đổi provider
+  url      = env("DATABASE_URL")
+}
+```
+
+Chạy lại: `npx prisma migrate dev`
+
+### Đổi sang SQLite (không cần server — dev nhanh)
+```yaml
+database:
+  type: sqlite
+  name: ./dev.db       # đường dẫn file
+```
+
+### Cấu hình production (không commit password)
+Tạo file `backend/config.local.yml` (đã có trong `.gitignore`):
+```yaml
+database:
+  host: prod-db.example.com
+  password: super-secret-password
+  ssl: true
+
+jwt:
+  secret: very-long-random-production-secret
+  refresh_secret: another-long-random-secret
+```
+
+File `config.local.yml` được merge đè lên `config.yml` — không cần sửa file gốc.
 
 ---
 

@@ -1,0 +1,37 @@
+app:
+  port: 3001
+  prefix: api/v1
+  cors_origin: http://localhost:3000
+
+database:
+  # Đổi type sang 'mysql' hoặc 'oracle' để chuyển DB
+  # Prisma hỗ trợ: postgresql | mysql | sqlite | sqlserver | mongodb
+  type: sqlite
+  host: localhost
+  port: 5432
+  username: postgres
+  password: password
+  name: car_admin_db
+  # Thêm ?sslmode=require nếu dùng cloud DB (Neon, Supabase, Railway...)
+  ssl: false
+  # Số connection tối đa trong pool
+  pool_size: 10
+  # Timeout kết nối (ms)
+  connect_timeout: 5000
+
+redis:
+  host: localhost
+  port: 6379
+  password: ''
+  db: 0
+  # TTL mặc định (giây)
+  default_ttl: 3600
+
+jwt:
+  secret: change-me-in-production
+  expires_in: 15m
+  refresh_secret: change-refresh-secret-in-production
+  refresh_expires_in: 7d
+
+# Override bằng config.local.yml (không commit file này)
+# hoặc biến môi trường DATABASE_HOST, DATABASE_PORT, v.v.

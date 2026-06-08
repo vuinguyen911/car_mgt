@@ -1,18 +1,23 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const config = app.get(ConfigService);
 
-  app.setGlobalPrefix('api/v1');
+  const prefix = config.get<string>('app.prefix', 'api/v1');
+  const corsOrigin = config.get<string>('app.cors_origin', 'http://localhost:3000');
+  const port = config.get<number>('app.port', 3001);
+
+  app.setGlobalPrefix(prefix);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new AllExceptionsFilter());
-  app.enableCors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' });
+  app.enableCors({ origin: corsOrigin });
 
-  const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`Backend running on http://localhost:${port}/api/v1`);
+  Logger.log(`Backend: http://localhost:${port}/${prefix}`, 'Bootstrap');
 }
 bootstrap();

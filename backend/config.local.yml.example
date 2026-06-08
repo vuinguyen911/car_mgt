@@ -1,0 +1,18 @@
+# Đổi tên thành config.local.yml và điền thông tin thật
+# File này KHÔNG được commit lên git
+database:
+  host: your-db-host
+  port: 5432
+  username: your-username
+  password: your-password
+  name: your-database
+  ssl: true
+
+redis:
+  host: your-redis-host
+  port: 6379
+  password: your-redis-password
+
+jwt:
+  secret: your-very-long-random-secret-key
+  refresh_secret: your-very-long-random-refresh-secret-key
