@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm list *)",
+      "Bash(node -e \"require\\('docx'\\)\")",
+      "Bash(npm install *)",
+      "Bash(nvm list *)",
+      "Read(//Users/vuinguyen/.nvm/versions/node/**)"
+    ]
+  }
+}

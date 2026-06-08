@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── SYSTEM ───────────────────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("basic")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  branches    Branch[]
+  users       User[]
+  brands      Brand[]
+  vehicles    Vehicle[]
+  customers   Customer[]
+  salesOrders SalesOrder[]
+
+  @@map("tenants")
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  address   String?
+  city      String?
+  province  String?
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  users       User[]
+  vehicles    Vehicle[]
+  salesOrders SalesOrder[]
+
+  @@map("branches")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  tenantId     String    @map("tenant_id")
+  branchId     String?   @map("branch_id")
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  phone        String?
+  avatarUrl    String?   @map("avatar_url")
+  role         UserRole
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  branch      Branch?      @relation(fields: [branchId], references: [id])
+  salesOrders SalesOrder[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  SALES_MANAGER
+  INVENTORY_MANAGER
+  SALES_STAFF
+  ACCOUNTANT
+  VIEWER
+}
+
+// ─── CATALOG ──────────────────────────────────────────────
+
+model Brand {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  country   String?
+  logoUrl   String?  @map("logo_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  models Model[]
+
+  @@map("brands")
+}
+
+model Model {
+  id        String   @id @default(uuid())
+  brandId   String   @map("brand_id")
+  name      String
+  segment   String? // sedan/suv/pickup/van/hatchback
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  brand    Brand     @relation(fields: [brandId], references: [id])
+  variants Variant[]
+
+  @@map("models")
+}
+
+model Variant {
+  id            String   @id @default(uuid())
+  modelId       String   @map("model_id")
+  year          Int
+  trimLevel     String?  @map("trim_level")
+  engineCc      Int?     @map("engine_cc")
+  engineType    String? // petrol/diesel/hybrid/electric
+  transmission  String? // manual/auto/cvt
+  driveType     String?  @map("drive_type") // fwd/rwd/awd/4wd
+  seats         Int?
+  doors         Int?
+  fuelCapacityL Decimal? @map("fuel_capacity_l") @db.Decimal(5, 1)
+  basePrice     Decimal? @map("base_price") @db.Decimal(15, 2)
+  currency      String   @default("VND")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  model    Model     @relation(fields: [modelId], references: [id])
+  vehicles Vehicle[]
+
+  @@map("variants")
+}
+
+model Color {
+  id        String   @id @default(uuid())
+  name      String
+  hexCode   String?  @map("hex_code")
+  colorType String?  @map("color_type") // solid/metallic/pearl
+  createdAt DateTime @default(now()) @map("created_at")
+
+  vehicles Vehicle[]
+
+  @@map("colors")
+}
+
+// ─── INVENTORY ────────────────────────────────────────────
+
+model Vehicle {
+  id              String           @id @default(uuid())
+  tenantId        String           @map("tenant_id")
+  branchId        String?          @map("branch_id")
+  variantId       String           @map("variant_id")
+  exteriorColorId String?          @map("exterior_color_id")
+  vin             String           @unique
+  plateNumber     String?          @map("plate_number")
+  engineNumber    String?          @map("engine_number")
+  chassisNumber   String?          @map("chassis_number")
+  interiorColor   String?          @map("interior_color")
+  condition       VehicleCondition @default(NEW)
+  status          VehicleStatus    @default(AVAILABLE)
+  odometerKm      Int              @default(0) @map("odometer_km")
+  costPrice       Decimal?         @map("cost_price") @db.Decimal(15, 2)
+  sellingPrice    Decimal?         @map("selling_price") @db.Decimal(15, 2)
+  minPrice        Decimal?         @map("min_price") @db.Decimal(15, 2)
+  lotLocation     String?          @map("lot_location")
+  manufactureDate DateTime?        @map("manufacture_date") @db.Date
+  importDate      DateTime?        @map("import_date") @db.Date
+  registeredDate  DateTime?        @map("registered_date") @db.Date
+  notes           String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  tenant        Tenant             @relation(fields: [tenantId], references: [id])
+  branch        Branch?            @relation(fields: [branchId], references: [id])
+  variant       Variant            @relation(fields: [variantId], references: [id])
+  exteriorColor Color?             @relation(fields: [exteriorColorId], references: [id])
+  images        VehicleImage[]
+  statusLogs    VehicleStatusLog[]
+  salesOrders   SalesOrder[]
+
+  @@index([tenantId, status])
+  @@index([branchId])
+  @@index([variantId])
+  @@index([plateNumber])
+  @@map("vehicles")
+}
+
+enum VehicleCondition {
+  NEW
+  USED
+  DAMAGED
+  SCRAPPED
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  SERVICE
+  TRANSIT
+}
+
+model VehicleImage {
+  id        String   @id @default(uuid())
+  vehicleId String   @map("vehicle_id")
+  url       String
+  isPrimary Boolean  @default(false) @map("is_primary")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@map("vehicle_images")
+}
+
+model VehicleStatusLog {
+  id         String   @id @default(uuid())
+  vehicleId  String   @map("vehicle_id")
+  fromStatus String?  @map("from_status")
+  toStatus   String   @map("to_status")
+  changedBy  String?  @map("changed_by")
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_status_logs")
+}
+
+// ─── SALES ────────────────────────────────────────────────
+
+model Customer {
+  id        String    @id @default(uuid())
+  tenantId  String    @map("tenant_id")
+  type      String    @default("individual") // individual/corporate
+  fullName  String    @map("full_name")
+  idNumber  String?   @map("id_number")
+  taxCode   String?   @map("tax_code")
+  phone     String?
+  email     String?
+  address   String?
+  province  String?
+  dob       DateTime? @db.Date
+  gender    String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  salesOrders SalesOrder[]
+
+  @@index([tenantId])
+  @@index([phone])
+  @@map("customers")
+}
+
+model SalesOrder {
+  id             String      @id @default(uuid())
+  tenantId       String      @map("tenant_id")
+  branchId       String?     @map("branch_id")
+  orderNumber    String      @unique @map("order_number")
+  vehicleId      String      @map("vehicle_id")
+  customerId     String?     @map("customer_id")
+  salespersonId  String?     @map("salesperson_id")
+  status         OrderStatus @default(DRAFT)
+  listPrice      Decimal     @map("list_price") @db.Decimal(15, 2)
+  discountAmount Decimal     @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  finalPrice     Decimal     @map("final_price") @db.Decimal(15, 2)
+  paymentMethod  String?     @map("payment_method")
+  depositAmount  Decimal     @default(0) @map("deposit_amount") @db.Decimal(15, 2)
+  deliveryDate   DateTime?   @map("delivery_date") @db.Date
+  notes          String?
+  approvedBy     String?     @map("approved_by")
+  approvedAt     DateTime?   @map("approved_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  branch      Branch?    @relation(fields: [branchId], references: [id])
+  vehicle     Vehicle    @relation(fields: [vehicleId], references: [id])
+  customer    Customer?  @relation(fields: [customerId], references: [id])
+  salesperson User?      @relation(fields: [salespersonId], references: [id])
+  payments    Payment[]
+
+  @@index([tenantId, status])
+  @@index([customerId])
+  @@index([salespersonId])
+  @@map("sales_orders")
+}
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  PAID
+  DELIVERED
+  CANCELLED
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  orderId     String   @map("order_id")
+  amount      Decimal  @db.Decimal(15, 2)
+  method      String?
+  referenceNo String?  @map("reference_no")
+  paidAt      DateTime @map("paid_at")
+  receivedBy  String?  @map("received_by")
+  note        String?
+
+  order SalesOrder @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+// ─── AUDIT & UTILS ────────────────────────────────────────
+
+model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  tenantId  String?  @map("tenant_id")
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  oldData   Json?    @map("old_data")
+  newData   Json?    @map("new_data")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  tenantId  String?  @map("tenant_id")
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  body      String?
+  data      Json?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
