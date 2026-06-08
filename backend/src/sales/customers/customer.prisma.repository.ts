@@ -14,9 +14,9 @@ export class CustomerPrismaRepository implements ICustomerRepository {
     if (type) where.type = type;
     if (search) {
       where.OR = [
-        { fullName: { contains: search, mode: 'insensitive' } },
+        { fullName: { contains: search } },
         { phone: { contains: search } },
-        { email: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search } },
         { idNumber: { contains: search } },
       ];
     }
@@ -96,7 +96,7 @@ export class CustomerPrismaRepository implements ICustomerRepository {
       where: {
         tenantId,
         OR: [
-          { fullName: { contains: q, mode: 'insensitive' } },
+          { fullName: { contains: q } },
           { phone: { contains: q } },
         ],
       },

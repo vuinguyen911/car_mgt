@@ -11,7 +11,7 @@ database:
   port: 5432
   username: postgres
   password: password
-  name: car_admin_db
+  name: ./prisma/dev.db
   # Thêm ?sslmode=require nếu dùng cloud DB (Neon, Supabase, Railway...)
   ssl: false
   # Số connection tối đa trong pool

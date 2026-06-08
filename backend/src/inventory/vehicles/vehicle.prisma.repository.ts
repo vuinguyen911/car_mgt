@@ -41,10 +41,10 @@ export class VehiclePrismaRepository implements IVehicleRepository {
     if (condition) where.condition = condition;
     if (search) {
       where.OR = [
-        { vin: { contains: search, mode: 'insensitive' } },
-        { plateNumber: { contains: search, mode: 'insensitive' } },
-        { variant: { model: { name: { contains: search, mode: 'insensitive' } } } },
-        { variant: { model: { brand: { name: { contains: search, mode: 'insensitive' } } } } },
+        { vin: { contains: search } },
+        { plateNumber: { contains: search } },
+        { variant: { model: { name: { contains: search } } } },
+        { variant: { model: { brand: { name: { contains: search } } } } },
       ];
     }
 

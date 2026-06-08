@@ -36,9 +36,9 @@ export class OrderPrismaRepository implements IOrderRepository {
     }
     if (search) {
       where.OR = [
-        { orderNumber: { contains: search, mode: 'insensitive' } },
-        { customer: { fullName: { contains: search, mode: 'insensitive' } } },
-        { vehicle: { vin: { contains: search, mode: 'insensitive' } } },
+        { orderNumber: { contains: search } },
+        { customer: { fullName: { contains: search } } },
+        { vehicle: { vin: { contains: search } } },
       ];
     }
 

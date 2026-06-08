@@ -91,14 +91,38 @@ ensure_sqlite_config() {
   if [ ! -f "$cfg" ]; then
     err "Không tìm thấy $cfg"; exit 1
   fi
-  # Set db type = sqlite nếu chưa
+  # Set db type = sqlite
   if ! grep -q "^  type: sqlite" "$cfg"; then
-    # macOS sed cần ''
     sed -i '' 's/^  type: .*/  type: sqlite/' "$cfg"
     ok "config.yml → database.type = sqlite"
   else
     ok "database.type đã là sqlite"
   fi
+  # Đảm bảo name = ./prisma/dev.db (Prisma tạo file ở prisma/ theo convention)
+  if ! grep -q "name: \./prisma/dev\.db" "$cfg"; then
+    sed -i '' 's|^  name: .*|  name: ./prisma/dev.db|' "$cfg"
+    ok "config.yml → database.name = ./prisma/dev.db"
+  fi
+}
+
+# ── Patch Prisma schema cho SQLite ────────────────────────
+patch_schema_for_sqlite() {
+  local schema="$BACKEND_DIR/prisma/schema.prisma"
+
+  # 1. Đổi provider
+  sed -i '' 's/provider = "postgresql"/provider = "sqlite"/' "$schema"
+  sed -i '' 's/provider = "mysql"/provider = "sqlite"/'     "$schema"
+
+  # 2. Xóa tất cả @db.* annotations — SQLite không hỗ trợ native types
+  #    Bắt mọi dạng: @db.Date  @db.Timestamp(x)  @db.VarChar(n)  @db.Decimal(p,s)  ...
+  sed -i '' 's/ @db\.[A-Za-z]*([^)]*)//' "$schema"   # dạng có ()
+  sed -i '' 's/ @db\.[A-Za-z]*//'        "$schema"   # dạng không có ()
+
+  # 3. Đổi Decimal → Float (kiểu Prisma scalar, không phải @db)
+  #    macOS sed dùng [[:<:]] [[:>:]] thay vì \b
+  sed -i '' 's/[[:<:]]Decimal[[:>:]]/Float/g' "$schema"
+
+  ok "Đã patch Prisma schema → SQLite (xóa @db.* annotations, Decimal→Float)"
 }
 
 # ── Prisma generate + migrate ──────────────────────────────
@@ -106,22 +130,19 @@ setup_db() {
   log "Kiểm tra Prisma schema..."
   cd "$BACKEND_DIR"
 
-  # Đảm bảo prisma schema dùng sqlite provider
-  local schema="$BACKEND_DIR/prisma/schema.prisma"
-  if grep -q 'provider = "postgresql"' "$schema"; then
-    sed -i '' 's/provider = "postgresql"/provider = "sqlite"/' "$schema"
-    # SQLite không hỗ trợ Decimal → dùng Float
-    sed -i '' 's/@db\.Decimal([^)]*)//' "$schema"
-    ok "Đã chuyển Prisma provider → sqlite"
-  fi
+  # Patch schema về SQLite mỗi lần (idempotent vì sed thay thế các pattern đã xóa → no-op)
+  patch_schema_for_sqlite
 
-  npx prisma generate --silent 2>/dev/null || npx prisma generate
-  # migrate dev cần tên; dùng deploy để không cần interactive
-  npx prisma migrate deploy 2>/dev/null || {
-    warn "migrate deploy thất bại, thử db push..."
-    npx prisma db push --accept-data-loss 2>/dev/null || true
+  # 4. Export DATABASE_URL để Prisma CLI nhận được (prisma.config.ts dùng env())
+  #    Phải khớp với config.yml → database.name = ./prisma/dev.db → buildDatabaseUrl() = "file:./prisma/dev.db"
+  export DATABASE_URL="file:./prisma/dev.db"
+
+  npx prisma generate
+  # db push phù hợp cho SQLite dev (không cần migration history)
+  npx prisma db push --accept-data-loss 2>&1 | grep -v "^$" || {
+    err "Prisma db push thất bại — xem log bên trên"; exit 1
   }
-  ok "DB sẵn sàng"
+  ok "DB sẵn sàng (SQLite: backend/dev.db)"
   cd "$ROOT_DIR"
 }
 
