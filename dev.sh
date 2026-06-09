@@ -142,7 +142,19 @@ setup_db() {
   npx prisma db push --accept-data-loss 2>&1 | grep -v "^$" || {
     err "Prisma db push thất bại — xem log bên trên"; exit 1
   }
-  ok "DB sẵn sàng (SQLite: backend/dev.db)"
+  ok "DB sẵn sàng (SQLite: backend/prisma/dev.db)"
+
+  # Seed dữ liệu mẫu nếu chưa có user nào
+  local user_count
+  user_count=$(sqlite3 "$BACKEND_DIR/prisma/dev.db" "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
+  if [ "$user_count" = "0" ]; then
+    log "Seed dữ liệu mẫu lần đầu..."
+    npx tsx prisma/seed.ts 2>&1 | grep -E "Seed|Admin|Staff|error" || true
+    ok "Seed hoàn tất — admin@demo.com / password123"
+  else
+    ok "DB đã có dữ liệu ($user_count users) — bỏ qua seed"
+  fi
+
   cd "$ROOT_DIR"
 }
 
