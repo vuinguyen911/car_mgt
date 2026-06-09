@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 import { loadConfig } from './common/config/config.loader';
 import { DatabaseModule } from './common/database/database.module';
 import { ExportModule } from './common/export/export.module';
+import { AppCacheModule } from './common/cache/cache.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { AuthModule } from './auth/auth.module';
@@ -14,6 +16,8 @@ import { OrdersModule } from './sales/orders/orders.module';
 import { ReportsModule } from './reports/reports.module';
 import { ImportModule } from './import/import.module';
 import { SearchModule } from './search/search.module';
+import { HealthModule } from './health/health.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -34,6 +38,8 @@ import { SearchModule } from './search/search.module';
       }),
     }),
 
+    ScheduleModule.forRoot(),
+    AppCacheModule,
     DatabaseModule,
     ExportModule,
     NotificationsModule,
@@ -46,6 +52,8 @@ import { SearchModule } from './search/search.module';
     ReportsModule,
     ImportModule,
     SearchModule,
+    HealthModule,
+    TasksModule,
   ],
 })
 export class AppModule {}

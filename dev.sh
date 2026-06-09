@@ -144,15 +144,16 @@ setup_db() {
   }
   ok "DB sẵn sàng (SQLite: backend/prisma/dev.db)"
 
-  # Seed dữ liệu mẫu nếu chưa có user nào
-  local user_count
+  # Seed dữ liệu mẫu — chạy nếu chưa có user hoặc xe < 1000
+  local user_count vehicle_count
   user_count=$(sqlite3 "$BACKEND_DIR/prisma/dev.db" "SELECT COUNT(*) FROM users;" 2>/dev/null || echo "0")
-  if [ "$user_count" = "0" ]; then
-    log "Seed dữ liệu mẫu lần đầu..."
-    npx tsx prisma/seed.ts 2>&1 | grep -E "Seed|Admin|Staff|error" || true
+  vehicle_count=$(sqlite3 "$BACKEND_DIR/prisma/dev.db" "SELECT COUNT(*) FROM vehicles;" 2>/dev/null || echo "0")
+  if [ "$user_count" = "0" ] || [ "$vehicle_count" -lt 1000 ]; then
+    log "Seed dữ liệu mẫu (users=$user_count, vehicles=$vehicle_count)..."
+    npx tsx prisma/seed.ts 2>&1 | grep -E "✓|✗|🌱|🎉|Seed|error|Error" || true
     ok "Seed hoàn tất — admin@demo.com / password123"
   else
-    ok "DB đã có dữ liệu ($user_count users) — bỏ qua seed"
+    ok "DB đã có dữ liệu ($user_count users, $vehicle_count xe) — bỏ qua seed"
   fi
 
   cd "$ROOT_DIR"
