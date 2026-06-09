@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
@@ -12,12 +13,14 @@ async function bootstrap() {
   const corsOrigin = config.get<string>('app.cors_origin', 'http://localhost:3000');
   const port = config.get<number>('app.port', 3001);
 
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix(prefix);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableCors({ origin: corsOrigin });
 
   await app.listen(port);
-  Logger.log(`Backend: http://localhost:${port}/${prefix}`, 'Bootstrap');
+  Logger.log(`Backend  : http://localhost:${port}/${prefix}`, 'Bootstrap');
+  Logger.log(`WebSocket: ws://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();
