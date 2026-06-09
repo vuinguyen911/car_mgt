@@ -4,4 +4,5 @@ export interface IBrandRepository {
   create(tenantId: string, data: { name: string; country?: string; logoUrl?: string }): Promise<any>;
   update(tenantId: string, id: string, data: { name?: string; country?: string; logoUrl?: string; isActive?: boolean }): Promise<any>;
   softDelete(tenantId: string, id: string): Promise<any>;
+  findModels(tenantId: string, brandId: string): Promise<any[]>;
 }

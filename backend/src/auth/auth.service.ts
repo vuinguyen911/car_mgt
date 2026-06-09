@@ -52,6 +52,26 @@ export class AuthService {
     }
   }
 
+  async listUsers(tenantId: string, search?: string) {
+    const where: any = { tenantId };
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search } },
+        { email: { contains: search } },
+      ];
+    }
+    const data = await this.prisma.user.findMany({
+      where,
+      select: {
+        id: true, email: true, fullName: true, phone: true,
+        role: true, isActive: true, lastLoginAt: true, createdAt: true,
+        branch: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { data };
+  }
+
   async getProfile(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId },

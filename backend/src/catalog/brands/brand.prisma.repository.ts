@@ -31,6 +31,14 @@ export class BrandPrismaRepository implements IBrandRepository {
     return this.prisma.brand.update({ where: { id }, data });
   }
 
+  findModels(tenantId: string, brandId: string) {
+    return this.prisma.model.findMany({
+      where: { brandId, brand: { tenantId }, isActive: true },
+      include: { _count: { select: { variants: true } } },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async softDelete(tenantId: string, id: string) {
     const brand = await this.prisma.brand.findFirst({ where: { id, tenantId } });
     if (!brand) throw new NotFoundException('Không tìm thấy hãng xe');

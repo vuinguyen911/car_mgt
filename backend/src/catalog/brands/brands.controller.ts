@@ -21,6 +21,11 @@ export class BrandsController {
     return this.brandsService.findOne(user.tenantId, id);
   }
 
+  @Get(':id/models')
+  findModels(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.brandsService.findModels(user.tenantId, id);
+  }
+
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.INVENTORY_MANAGER)
   create(@CurrentUser() user: any, @Body() body: { name: string; country?: string; logoUrl?: string }) {
